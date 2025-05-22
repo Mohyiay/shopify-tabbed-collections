@@ -1,0 +1,644 @@
+{% comment %}
+  Tabbed Collection List – merges Dawn’s "collection-list" layout with two tabs.
+  - Shows two groups of blocks: Adresseerbaar vs. Conventioneel
+  - Maintains color scheme, slider logic, padding, etc. from Dawn’s "collection-list"
+{% endcomment %}
+
+{{ 'section-collection-list.css' | asset_url | stylesheet_tag }}
+{{ 'component-tab-collections.css' | asset_url | stylesheet_tag }}
+{{ 'component-card.css' | asset_url | stylesheet_tag }}
+{{ 'component-slider.css' | asset_url | stylesheet_tag }}
+
+{%- style -%}
+  /* Replicate Dawn’s padding logic */
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+
+  /* Simple styling for the tab buttons */
+  .collection-tab-btn {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #004289;
+    background-color: #fff;
+    color: #004289;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .collection-tab-btn:hover {
+    background-color: #004289;
+    color: #fff;
+  }
+  .collection-tab-btn.active {
+    background-color: #004289;
+    color: #fff;
+  }
+{%- endstyle -%}
+
+{%- liquid
+  #####################################################################
+  # 1) Determine how many blocks belong to each "principle"
+  #####################################################################
+  assign blocks_adresseerbaar = 0
+  assign blocks_conventioneel = 0
+  assign blocks_toegangscontrole = 0
+  assign blocks_aspiratie = 0
+  assign blocks_gasdetectie = 0
+  assign blocks_camerabewaking = 0
+  assign blocks_testmaterialen = 0
+  assign blocks_voedingen = 0
+
+  for block in section.blocks
+    if block.settings.principle == 'Adresseerbaar'
+      assign blocks_adresseerbaar = blocks_adresseerbaar | plus: 1
+    elsif block.settings.principle == 'Conventioneel'
+      assign blocks_conventioneel = blocks_conventioneel | plus: 1
+    elsif block.settings.principle == 'Toegangscontrole'
+      assign blocks_toegangscontrole = blocks_toegangscontrole | plus: 1
+    elsif block.settings.principle == 'Aspiratie'
+      assign blocks_aspiratie = blocks_aspiratie | plus: 1
+    elsif block.settings.principle == 'Gasdetectie'
+      assign blocks_gasdetectie = blocks_gasdetectie | plus: 1
+    elsif block.settings.principle == 'Camerabewaking'
+      assign blocks_camerabewaking = blocks_camerabewaking | plus: 1
+    elsif block.settings.principle == 'TestMaterialen'
+      assign blocks_testmaterialen = blocks_testmaterialen | plus: 1
+    elsif block.settings.principle == 'Voedingen'
+      assign blocks_voedingen = blocks_voedingen | plus: 1
+    endif
+  endfor
+
+  #####################################################################
+  # 2) show_mobile_slider logic (same as original collection-list)
+  #    We'll turn on slider if:
+  #      - "swipe_on_mobile" is true
+  #      - AND the total blocks in that tab > columns_mobile
+  #####################################################################
+  assign columns_mobile_int = section.settings.columns_mobile | plus: 0
+
+  # Initialize mobile slider variables for all categories
+  assign show_mobile_slider = false
+
+  # Create mobile slider flags for each category
+  assign show_mobile_slider_toegangscontrole = false
+  assign show_mobile_slider_aspiratie = false
+  assign show_mobile_slider_gasdetectie = false
+  assign show_mobile_slider_camerabewaking = false
+  assign show_mobile_slider_testmaterialen = false
+  assign show_mobile_slider_voedingen = false
+
+  # Check mobile slider conditions for each category
+  if section.settings.swipe_on_mobile and blocks_toegangscontrole > columns_mobile_int
+    assign show_mobile_slider_toegangscontrole = true
+    assign show_mobile_slider = true
+  endif
+
+  if section.settings.swipe_on_mobile and blocks_aspiratie > columns_mobile_int
+    assign show_mobile_slider_aspiratie = true
+    assign show_mobile_slider = true
+  endif
+
+  if section.settings.swipe_on_mobile and blocks_gasdetectie > columns_mobile_int
+    assign show_mobile_slider_gasdetectie = true
+    assign show_mobile_slider = true
+  endif
+
+  if section.settings.swipe_on_mobile and blocks_camerabewaking > columns_mobile_int
+    assign show_mobile_slider_camerabewaking = true
+    assign show_mobile_slider = true
+  endif
+
+  if section.settings.swipe_on_mobile and blocks_testmaterialen > columns_mobile_int
+    assign show_mobile_slider_testmaterialen = true
+    assign show_mobile_slider = true
+  endif
+
+  if section.settings.swipe_on_mobile and blocks_voedingen > columns_mobile_int
+    assign show_mobile_slider_voedingen = true
+    assign show_mobile_slider = true
+  endif
+
+  assign categories = "toegangscontrole,aspiratie,gasdetectie,camerabewaking,testmaterialen,voedingen" | split: ","
+-%}
+
+<!-- Added container id so that the JS can properly target this section -->
+<div id="tabbed-collections-{{ section.id }}" class="color-{{ section.settings.color_scheme }} gradient">
+  <div
+    class="
+      collection-list-wrapper page-width isolate
+      {% if show_mobile_slider_adresseerbaar or show_mobile_slider_conventioneel %} page-width-desktop{% endif %}
+      {% if section.settings.title == blank %} no-heading{% endif %}
+      {% if section.settings.show_view_all == false %} no-mobile-link{% endif %}
+      section-{{ section.id }}-padding
+    "
+  >
+    {%- unless section.settings.title == blank -%}
+      <div
+        class="
+          title-wrapper-with-link
+          {% if show_mobile_slider_adresseerbaar or show_mobile_slider_conventioneel %}
+            title-wrapper--self-padded-tablet-down
+          {% else %}
+            title-wrapper--self-padded-mobile
+          {% endif %}
+          title-wrapper--no-top-margin
+        "
+      >
+        <h2
+          id="SectionHeading-{{ section.id }}"
+          class="collection-list-title inline-richtext {{ section.settings.heading_size }}"
+        >
+          {{ section.settings.title }}
+        </h2>
+      </div>
+    {%- endunless -%}
+
+    <!-- TAB BUTTONS -->
+    <div class="collection-tabs-container">
+      <div class="collection-tab-row has-second-row">
+        <button type="button" class="collection-tab-btn active" data-target="adresseerbaar-{{ section.id }}">
+          Adresseerbaar
+        </button>
+        <button type="button" class="collection-tab-btn" data-target="conventioneel-{{ section.id }}">
+          Conventioneel
+        </button>
+        <button type="button" class="collection-tab-btn" data-target="toegangscontrole-{{ section.id }}">
+          Toegangscontrole
+        </button>
+        <button type="button" class="collection-tab-btn" data-target="aspiratie-{{ section.id }}">
+          Aspiratie
+        </button>
+      </div>
+      <div class="collection-tab-row">
+        <button type="button" class="collection-tab-btn" data-target="gasdetectie-{{ section.id }}">
+          Gasdetectie
+        </button>
+        <button type="button" class="collection-tab-btn" data-target="camerabewaking-{{ section.id }}">
+          Camerabewaking
+        </button>
+        <button type="button" class="collection-tab-btn" data-target="testmaterialen-{{ section.id }}">
+          Test materialen
+        </button>
+        <button type="button" class="collection-tab-btn" data-target="voedingen-{{ section.id }}">
+          Voedingen 24V EN54
+        </button>
+      </div>
+    </div>
+
+    <!-- ADRESSEERBAAR TAB CONTENT -->
+    <slider-component
+      id="adresseerbaar-{{ section.id }}"
+      class="slider-mobile-gutter collection-tab-content"
+      style="display: block;"
+    >
+      <ul
+        class="
+          collection-list
+          contains-card contains-card--collection
+          {% if section.settings.swipe_on_mobile %} slider slider--tablet grid--peek{% endif %}
+        "
+        id="Slider-{{ section.id }}-adresseerbaar"
+        role="list"
+      >
+        {%- assign slide_index = 0 -%}
+        {%- for block in section.blocks -%}
+          {%- if block.settings.principle == 'Adresseerbaar' -%}
+            {%- assign slide_index = slide_index | plus: 1 -%}
+            <li
+              id="Slide-{{ section.id }}-adresseerbaar-{{ slide_index }}"
+              class="
+                collection-list__item grid__item
+                {% if show_mobile_slider_adresseerbaar %} slider__slide{% endif %}
+                {% if block.settings.collection.featured_image == nil %} collection-list__item--no-media{% endif %}
+              "
+              {{ block.shopify_attributes }}
+              role="listitem"
+            >
+              {%- assign placeholder_image_index = slide_index | modulo: 4 | plus: 1 -%}
+              {%- assign placeholder_image = 'collection-apparel-' | append: placeholder_image_index -%}
+
+              {% render 'card-collection',
+                card_collection: block.settings.collection,
+                media_aspect_ratio: section.settings.image_ratio,
+                placeholder_image: placeholder_image
+              %}
+            </li>
+          {%- endif -%}
+        {%- endfor -%}
+      </ul>
+
+      {% if show_mobile_slider_adresseerbaar %}
+        <div class="slider-buttons">
+          <button
+            type="button"
+            class="slider-button slider-button--prev"
+            name="previous"
+            aria-label="Vorige"
+          >
+            <span class="svg-wrapper">
+              {{ 'icon-caret.svg' | inline_asset_content }}
+            </span>
+          </button>
+          <div class="slider-counter caption">
+            <span class="slider-counter--current">1</span>
+            <span aria-hidden="true"> / </span>
+            <span class="visually-hidden">of</span>
+            <span class="slider-counter--total">{{ blocks_adresseerbaar }}</span>
+          </div>
+          <button
+            type="button"
+            class="slider-button slider-button--next"
+            name="next"
+            aria-label="Volgende"
+          >
+            <span class="svg-wrapper">
+              {{ 'icon-caret.svg' | inline_asset_content }}
+            </span>
+          </button>
+        </div>
+      {% endif %}
+    </slider-component>
+
+    <!-- NEW CATEGORY TAB CONTENTS -->
+    {%- for category in categories -%}
+      {%- assign display_name = category | capitalize -%}
+      {%- assign blocks_count = 0 -%}
+
+      {%- case category -%}
+        {%- when 'testmaterialen' -%}
+          {%- assign display_name = 'Test materialen' -%}
+          {%- assign blocks_count = blocks_testmaterialen -%}
+        {%- when 'voedingen' -%}
+          {%- assign display_name = 'Voedingen 24V EN54' -%}
+          {%- assign blocks_count = blocks_voedingen -%}
+        {%- when 'toegangscontrole' -%}
+          {%- assign blocks_count = blocks_toegangscontrole -%}
+        {%- when 'aspiratie' -%}
+          {%- assign blocks_count = blocks_aspiratie -%}
+        {%- when 'gasdetectie' -%}
+          {%- assign blocks_count = blocks_gasdetectie -%}
+        {%- when 'camerabewaking' -%}
+          {%- assign blocks_count = blocks_camerabewaking -%}
+      {%- endcase -%}
+
+      {%- capture show_slider -%}
+        {%- case category -%}
+          {%- when 'toegangscontrole' -%}{{ show_mobile_slider_toegangscontrole }}
+          {%- when 'aspiratie' -%}{{ show_mobile_slider_aspiratie }}
+          {%- when 'gasdetectie' -%}{{ show_mobile_slider_gasdetectie }}
+          {%- when 'camerabewaking' -%}{{ show_mobile_slider_camerabewaking }}
+          {%- when 'testmaterialen' -%}{{ show_mobile_slider_testmaterialen }}
+          {%- when 'voedingen' -%}{{ show_mobile_slider_voedingen }}
+        {%- endcase -%}
+      {%- endcapture -%}
+
+      <slider-component
+        id="{{ category }}-{{ section.id }}"
+        class="slider-mobile-gutter collection-tab-content"
+        style="display: none;"
+      >
+        <ul
+          class="
+            collection-list
+            contains-card contains-card--collection
+            {% if section.settings.swipe_on_mobile %} slider slider--tablet grid--peek{% endif %}
+          "
+          id="Slider-{{ section.id }}-{{ category }}"
+          role="list"
+        >
+          {%- assign slide_index = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.settings.principle == display_name -%}
+              {%- assign slide_index = slide_index | plus: 1 -%}
+              <li
+                id="Slide-{{ section.id }}-{{ category }}-{{ slide_index }}"
+                class="
+                  collection-list__item grid__item
+                  {% if show_slider == 'true' %} slider__slide{% endif %}
+                  {% if block.settings.collection.featured_image == nil %} collection-list__item--no-media{% endif %}
+                "
+                {{ block.shopify_attributes }}
+                role="listitem"
+              >
+                {%- assign placeholder_image_index = slide_index | modulo: 4 | plus: 1 -%}
+                {%- assign placeholder_image = 'collection-apparel-' | append: placeholder_image_index -%}
+
+                {% render 'card-collection',
+                  card_collection: block.settings.collection,
+                  media_aspect_ratio: section.settings.image_ratio,
+                  placeholder_image: placeholder_image
+                %}
+              </li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ul>
+
+        {% if show_slider == 'true' %}
+          <div class="slider-buttons">
+            <button
+              type="button"
+              class="slider-button slider-button--prev"
+              name="previous"
+              aria-label="Vorige"
+            >
+              <span class="svg-wrapper">
+                {{ 'icon-caret.svg' | inline_asset_content }}
+              </span>
+            </button>
+            <div class="slider-counter caption">
+              <span class="slider-counter--current">1</span>
+              <span aria-hidden="true"> / </span>
+              <span class="visually-hidden">of</span>
+              <span class="slider-counter--total">{{ blocks_count }}</span>
+            </div>
+            <button
+              type="button"
+              class="slider-button slider-button--next"
+              name="next"
+              aria-label="Volgende"
+            >
+              <span class="svg-wrapper">
+                {{ 'icon-caret.svg' | inline_asset_content }}
+              </span>
+            </button>
+          </div>
+        {% endif %}
+      </slider-component>
+    {%- endfor -%}
+
+    <!-- CONVENTIONEEL TAB CONTENT -->
+    <slider-component
+      id="conventioneel-{{ section.id }}"
+      class="slider-mobile-gutter collection-tab-content"
+      style="display: none;"
+    >
+      <ul
+        class="
+          collection-list
+          contains-card contains-card--collection
+          {% if section.settings.swipe_on_mobile %} slider slider--tablet grid--peek{% endif %}
+        "
+        id="Slider-{{ section.id }}-conventioneel"
+        role="list"
+      >
+        {%- assign slide_index = 0 -%}
+        {%- for block in section.blocks -%}
+          {%- if block.settings.principle == 'Conventioneel' -%}
+            {%- assign slide_index = slide_index | plus: 1 -%}
+            <li
+              id="Slide-{{ section.id }}-conventioneel-{{ slide_index }}"
+              class="
+                collection-list__item grid__item
+                {% if show_mobile_slider_conventioneel %} slider__slide{% endif %}
+                {% if block.settings.collection.featured_image == nil %} collection-list__item--no-media{% endif %}
+              "
+              {{ block.shopify_attributes }}
+              role="listitem"
+            >
+              {%- assign placeholder_image_index = slide_index | modulo: 4 | plus: 1 -%}
+              {%- assign placeholder_image = 'collection-apparel-' | append: placeholder_image_index -%}
+
+              {% render 'card-collection',
+                card_collection: block.settings.collection,
+                media_aspect_ratio: section.settings.image_ratio,
+                placeholder_image: placeholder_image
+              %}
+            </li>
+          {%- endif -%}
+        {%- endfor -%}
+      </ul>
+
+      {% if show_mobile_slider_conventioneel %}
+        <div class="slider-buttons">
+          <button
+            type="button"
+            class="slider-button slider-button--prev"
+            name="previous"
+            aria-label="Vorige"
+          >
+            <span class="svg-wrapper">
+              {{ 'icon-caret.svg' | inline_asset_content }}
+            </span>
+          </button>
+          <div class="slider-counter caption">
+            <span class="slider-counter--current">1</span>
+            <span aria-hidden="true"> / </span>
+            <span class="visually-hidden">of</span>
+            <span class="slider-counter--total">{{ blocks_conventioneel }}</span>
+          </div>
+          <button
+            type="button"
+            class="slider-button slider-button--next"
+            name="next"
+            aria-label="Volgende"
+          >
+            <span class="svg-wrapper">
+              {{ 'icon-caret.svg' | inline_asset_content }}
+            </span>
+          </button>
+        </div>
+      {% endif %}
+    </slider-component>
+
+    <!-- "Ontdek alle producten" BUTTON (optional, like Dawn) -->
+    {%- if section.settings.show_view_all == true -%}
+      <div
+        class="center collection-list-view-all{% if show_mobile_slider_adresseerbaar or show_mobile_slider_conventioneel %} small-hide medium-hide{% endif %}"
+        style="margin-top: 2rem;"
+      >
+        <a
+          href="/collections/all"
+          class="button"
+          id="ViewAllButton-{{ section.id }}"
+          aria-labelledby="ViewAllButton-{{ section.id }} SectionHeading-{{ section.id }}"
+        >
+          Ontdek alle producten
+        </a>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+<!-- Minimal JS to toggle tab visibility -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const sectionId = '{{ section.id }}';
+    const container = document.getElementById('tabbed-collections-' + sectionId);
+    if (!container) return;
+
+    const tabButtons = container.querySelectorAll('.collection-tab-btn');
+    const tabContents = container.querySelectorAll('.collection-tab-content');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Deactivate all buttons
+        tabButtons.forEach(b => b.classList.remove('active'));
+        // Hide all tab contents
+        tabContents.forEach(tc => tc.style.display = 'none');
+
+        // Activate this button
+        btn.classList.add('active');
+        // Show the matching tab content
+        const targetId = btn.getAttribute('data-target');
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) {
+          targetContent.style.display = 'block';
+        }
+      });
+    });
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Tabbed Collection List",
+  "tag": "section",
+  "class": "section section-collection-list",
+  "max_blocks": 15,
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "inline_richtext",
+      "id": "title",
+      "default": "Ons assortiment",
+      "label": "Title"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        { "value": "h2",  "label": "H2" },
+        { "value": "h1",  "label": "H1" },
+        { "value": "h0",  "label": "H0" },
+        { "value": "hxl", "label": "HXL" },
+        { "value": "hxxl","label": "HXXL" }
+      ],
+      "default": "h1",
+      "label": "Heading size"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        { "value": "adapt",    "label": "Adapt" },
+        { "value": "portrait", "label": "Portrait" },
+        { "value": "square",   "label": "Square" }
+      ],
+      "default": "square",
+      "label": "Image ratio"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 3,
+      "label": "Columns on desktop"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "default": false,
+      "label": "Show \"Ontdek alle producten\" button"
+    },
+    {
+      "type": "header",
+      "content": "Mobile settings"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "options": [
+        { "value": "1", "label": "1 column" },
+        { "value": "2", "label": "2 columns" }
+      ],
+      "default": "1",
+      "label": "Columns on mobile"
+    },
+    {
+      "type": "checkbox",
+      "id": "swipe_on_mobile",
+      "default": false,
+      "label": "Enable swipe slider on mobile"
+    },
+    {
+      "type": "header",
+      "content": "Section padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 36
+    }
+  ],
+  "blocks": [
+    {
+      "type": "featured_collection",
+      "name": "Collection",
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Select collection"
+        },
+        {
+          "type": "select",
+          "id": "principle",
+          "label": "Principle",
+          "default": "Adresseerbaar",
+          "options": [
+            { "value": "Adresseerbaar", "label": "Adresseerbaar" },
+            { "value": "Conventioneel", "label": "Conventioneel" },
+            { "value": "Toegangscontrole", "label": "Toegangscontrole" },
+            { "value": "Aspiratie", "label": "Aspiratie" },
+            { "value": "Gasdetectie", "label": "Gasdetectie" },
+            { "value": "Camerabewaking", "label": "Camerabewaking" },
+            { "value": "TestMaterialen", "label": "Test materialen" },
+            { "value": "Voedingen", "label": "Voedingen 24V EN54" }
+          ]
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Tabbed Collection List",
+      "blocks": [
+        { "type": "featured_collection" },
+        { "type": "featured_collection" }
+      ]
+    }
+  ]
+}
+{% endschema %}
